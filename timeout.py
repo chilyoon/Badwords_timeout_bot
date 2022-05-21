@@ -8,6 +8,9 @@ a = word_detection()
 a.load_data()
 a.load_badword_data()
 
+global duration
+duration = 60
+
 def filter(message):        #비속어 필터링
         word = str(message)
         a.input = word
@@ -54,24 +57,20 @@ class Timeout:
         self.channel = message.channel
         self.guild = message.guild
 
-        self.expire_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=30)
+        self.expire_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=duration)
 
-        self.options = {
-            'min_votes': 3,
-            'duration': 60,
-        }
 
         for kw in kwargs:
-            if kw not in self.options:
+            if kw not in duration:
                 raise ValueError
 
-            self.options[kw] = kwargs[kw]
+            duration[kw] = kwargs[kw]
 
     # 타임아웃 기능
     async def execute_timeout(self):
         self.activated = False
         if self.target_users != self.bot.user:
-            self.expire_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=self.options['duration'])
+            self.expire_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=duration)
 
             status = timeout_user(self.bot, self.target_users.id, self.guild.id, self.expire_at)
             users=self.target_users
@@ -95,6 +94,11 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+    channel = message.channel
+    if message.content.startswith('$duration'):     #타임아웃 시간 설정
+        global duration
+        duration = int(message.content[9:])
+        await channel.send(f"타임아웃 시간: {duration}")
     if message.author.bot:
         return None
     if filter(message.content) == True:
