@@ -97,7 +97,8 @@ async def on_message(message):
     channel = message.channel
     if message.content.startswith('$duration'):     #타임아웃 시간 설정
         global duration
-        duration = int(message.content[9:])
+        if len(message.content) > 9:
+            duration = int(message.content[9:])
         await channel.send(f"타임아웃 시간: {duration}")
     if message.author.bot:
         return None
