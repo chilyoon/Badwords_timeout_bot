@@ -8,8 +8,10 @@ a = word_detection()
 a.load_data()
 a.load_badword_data()
 
-global duration
+global duration     #시간 설정
 duration = 60
+
+dic = {}            #카운트 값
 
 def filter(message):        #비속어 필터링
         word = str(message)
@@ -75,7 +77,7 @@ class Timeout:
             status = timeout_user(self.bot, self.target_users.id, self.guild.id, self.expire_at)
             users=self.target_users
             if status == 200:  # HTTP Patch success
-                self.feedback_message = await self.channel.send(f"{users.mention}에게 비속어 사용으로 인한 타임아웃을 적용합니다.")
+                self.feedback_message = await self.channel.send(f"{users.mention}에게 3회 이상 비속어 사용으로 인한 타임아웃을 적용합니다.")
 
     async def expire(self):
         if datetime.datetime.utcnow() > self.expire_at:
@@ -95,17 +97,27 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     channel = message.channel
+    author = message.author
     if message.content.startswith('$duration'):     #타임아웃 시간 설정
         global duration
         if len(message.content) > 9:
             duration = int(message.content[9:])
         await channel.send(f"타임아웃 시간: {duration}")
-    if message.author.bot:
+    if author.bot:
         return None
     if filter(message.content) == True:
-        to = Timeout(bot, message)
-        MSG_TO_TIMEOUT[message] = to
-        await to.execute_timeout()      # 추가
+        if author in dic:
+            dic[author] = dic[author] + 1
+            if dic[author] == 3:  # 비속어 횟수 설정
+                to = Timeout(bot, message)
+                MSG_TO_TIMEOUT[message] = to
+                await to.execute_timeout()
+                dic.pop(author)
+            else:
+                await channel.send(f'{author.mention}유저 욕설 {dic[author]}회(3회 이상 욕설 시 차단)')
+        else:
+            dic[author] = 1
+            await channel.send(f'{author.mention}유저 욕설 1회(3회 이상 욕설 시 차단)')
 
 
 @tasks.loop(seconds=10)
